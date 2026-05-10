@@ -1,6 +1,6 @@
-import { Redis } from '@upstash/redis';
-
-export const redis = new Redis({
-  url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN
-});
+// lib/redis.ts
+export const redis = {
+  get: async () => null,
+  set: async () => null,
+  // Adicione outras funções vazias se o seu código reclamar
+};
