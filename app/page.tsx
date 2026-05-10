@@ -3,13 +3,12 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import { useCart } from '../lib/CartContext' // Importamos o contexto real
+import { useCart } from '../lib/CartContext'
 
 // IMPORTANDO OS COMPONENTES
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
-// Forçamos a página a não ser estática para evitar erros de build com Supabase/Searchparams
 export const dynamic = 'force-dynamic' 
 
 const banners = [
@@ -37,12 +36,18 @@ function Storefront() {
   const searchParams = useSearchParams()
   const urlSearch = searchParams.get('search')
   
-  // Pegamos o estado global do carrinho em vez de criar um local
   const { cart, setIsCartOpen } = useCart()
 
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [currentSlide, setCurrentSlide] = useState(0)
+
+  // === A TRAVA DE SEGURANÇA PARA A VERCEL ===
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Carousel timer
   useEffect(() => {
@@ -79,10 +84,14 @@ function Storefront() {
         setLoading(false)
       }
     }
-    loadData()
-  }, [urlSearch])
+    // Só busca os dados se o componente já montou no navegador
+    if (isMounted) {
+      loadData()
+    }
+  }, [urlSearch, isMounted])
 
-  if (loading) return (
+  // === SE NÃO ESTIVER MONTADO (Ex: durante o build da Vercel), RETORNA TELA DE CARREGAMENTO ===
+  if (!isMounted || loading) return (
     <div className="h-screen flex items-center justify-center text-xs uppercase tracking-widest text-gray-400 animate-pulse">
       Loading_
     </div>
@@ -90,14 +99,12 @@ function Storefront() {
 
   return (
     <div className="bg-white">
-      {/* HEADER: Agora usa o cart global e a função de abrir global */}
       <Header 
         cartCount={cart.length} 
         onOpenCart={() => setIsCartOpen(true)} 
         isAbsolute={false} 
       />
 
-      {/* MEGABANNER ROTATIVO */}
       {!urlSearch && (
         <div className="relative bg-gray-900 h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden">
           {banners.map((banner, index) => (
@@ -146,7 +153,6 @@ function Storefront() {
         </div>
       )}
 
-      {/* PRODUCT LIST */}
       <main id="shop" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="border-b border-gray-200 pb-4 mb-10 flex justify-between items-end">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase italic">
@@ -169,7 +175,6 @@ function Storefront() {
                 <div className="mt-4 flex justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-gray-900 uppercase">
-                      {/* Usamos o id real do Supabase para o link */}
                       <a href={`/product/${product.id}`}>
                         <span className="absolute inset-0" aria-hidden="true" />
                         {product.name}
