@@ -1,20 +1,14 @@
-import { getAllSubdomains } from '@/lib/subdomains';
-import type { Metadata } from 'next';
-import { AdminDashboard } from './dashboard';
-import { rootDomain } from '@/lib/utils';
+export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: `Admin Dashboard | ${rootDomain}`,
-  description: `Manage subdomains for ${rootDomain}`
-};
-
-export default async function AdminPage() {
-  // TODO: You can add authentication here with your preferred auth provider
-  const tenants = await getAllSubdomains();
-
+export default function AdminPage() {
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <AdminDashboard tenants={tenants} />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-white p-10">
+      <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-900">
+        STUDIO_ ADMIN
+      </h1>
+      <p className="mt-4 text-xs font-bold uppercase tracking-widest text-gray-500">
+        Painel em manutenção temporária para o deploy_
+      </p>
     </div>
-  );
+  )
 }
