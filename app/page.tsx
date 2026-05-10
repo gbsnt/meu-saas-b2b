@@ -3,12 +3,15 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { useCart } from '../lib/CartContext' // Importamos o contexto real
 
 // IMPORTANDO OS COMPONENTES
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
-// --- DADOS DO MEGABANNER ROTATIVO (PAISAGENS) ---
+// Forçamos a página a não ser estática para evitar erros de build com Supabase/Searchparams
+export const dynamic = 'force-dynamic' 
+
 const banners = [
   {
     id: 1,
@@ -33,14 +36,15 @@ const banners = [
 function Storefront() {
   const searchParams = useSearchParams()
   const urlSearch = searchParams.get('search')
+  
+  // Pegamos o estado global do carrinho em vez de criar um local
+  const { cart, setIsCartOpen } = useCart()
 
   const [products, setProducts] = useState<any[]>([])
-  const [cart, setCart] = useState<any[]>([]) 
-  const [isCartOpen, setIsCartOpen] = useState(false) 
   const [loading, setLoading] = useState(true)
-
   const [currentSlide, setCurrentSlide] = useState(0)
 
+  // Carousel timer
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % banners.length)
@@ -48,40 +52,52 @@ function Storefront() {
     return () => clearInterval(timer)
   }, [])
 
+  // Carregamento de dados
   useEffect(() => {
     async function loadData() {
-      setLoading(true)
-      const { data } = await supabase.from('products').select('*')
-      let fetchedProducts = data || []
-
-      if (urlSearch) {
-        const term = urlSearch.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      try {
+        setLoading(true)
+        const { data, error } = await supabase.from('products').select('*')
         
-        fetchedProducts = fetchedProducts.filter(product => {
-          const name = (product.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
-          const desc = (product.description || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
-          return name.includes(term) || desc.includes(term)
-        })
-      }
+        if (error) throw error
 
-      setProducts(fetchedProducts)
-      setLoading(false)
+        let fetchedProducts = data || []
+
+        if (urlSearch) {
+          const term = urlSearch.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+          fetchedProducts = fetchedProducts.filter(product => {
+            const name = (product.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+            const desc = (product.description || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+            return name.includes(term) || desc.includes(term)
+          })
+        }
+
+        setProducts(fetchedProducts)
+      } catch (err) {
+        console.error("Erro ao carregar produtos:", err)
+      } finally {
+        setLoading(false)
+      }
     }
     loadData()
   }, [urlSearch])
 
-  if (loading) return <div className="h-screen flex items-center justify-center text-xs uppercase tracking-widest text-gray-400">Loading_</div>
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center text-xs uppercase tracking-widest text-gray-400 animate-pulse">
+      Loading_
+    </div>
+  )
 
   return (
     <div className="bg-white">
-      {/* HEADER COMPONENTIZADO */}
+      {/* HEADER: Agora usa o cart global e a função de abrir global */}
       <Header 
         cartCount={cart.length} 
         onOpenCart={() => setIsCartOpen(true)} 
         isAbsolute={false} 
       />
 
-      {/* MEGABANNER ROTATIVO (CAROUSEL) */}
+      {/* MEGABANNER ROTATIVO */}
       {!urlSearch && (
         <div className="relative bg-gray-900 h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden">
           {banners.map((banner, index) => (
@@ -101,7 +117,7 @@ function Storefront() {
               </div>
 
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 lg:px-8 max-w-3xl mx-auto">
-                <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl uppercase italic transform transition-transform duration-1000 translate-y-0">
+                <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl uppercase italic">
                   {banner.title}
                 </h1>
                 <p className="mt-6 text-lg font-medium text-gray-200 sm:text-xl">
@@ -122,7 +138,7 @@ function Storefront() {
                 key={index}
                 onClick={() => setCurrentSlide(index)}
                 className={`h-2 w-2 rounded-full transition-all duration-300 ${
-                  index === currentSlide ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/80'
+                  index === currentSlide ? 'bg-white w-6' : 'bg-white/50'
                 }`}
               />
             ))}
@@ -153,6 +169,7 @@ function Storefront() {
                 <div className="mt-4 flex justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-gray-900 uppercase">
+                      {/* Usamos o id real do Supabase para o link */}
                       <a href={`/product/${product.id}`}>
                         <span className="absolute inset-0" aria-hidden="true" />
                         {product.name}
@@ -166,13 +183,12 @@ function Storefront() {
             ))
           ) : (
             <div className="col-span-full text-center py-32 border-2 border-dashed border-gray-100 rounded-xl">
-              <p className="text-gray-400 uppercase tracking-widest text-xs font-bold">Nenhum produto encontrado para "{urlSearch}".</p>
+              <p className="text-gray-400 uppercase tracking-widest text-xs font-bold">Nenhum produto encontrado.</p>
             </div>
           )}
         </div>
       </main>
 
-      {/* FOOTER COMPONENTIZADO */}
       <Footer />
     </div>
   )

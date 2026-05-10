@@ -71,11 +71,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   return (
     <div className="bg-white">
       {/* 1. HEADER CONECTADO AO CARRINHO REAL */}
-     <Header isAbsolute={false}
-        cartCount={cart.length} 
+      <Header 
+         isAbsolute={false}
+         cartCount={cart.length} 
         onOpenCart={() => setIsCartOpen(true)} 
-        isAbsolute={false} 
-      />
+        />
 
       <main>
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
