@@ -1,17 +1,17 @@
 'use client'
 
+import { Suspense } from 'react' // 1. Importar Suspense
 import { useCart } from '../../components/CartContext'
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import { TrashIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline'
 
-export default function CartPage() {
-  // Puxamos setIsCartOpen para o Header funcionar
+// 2. Criamos um componente interno para a lógica do Carrinho
+function CartContent() {
   const { cart, removeFromCart, updateQuantity, cartTotal, setIsCartOpen } = useCart()
 
   return (
     <div className="bg-white min-h-screen flex flex-col">
-      {/* CONECTANDO O HEADER CORRETAMENTE */}
       <Header 
         isAbsolute={false} 
         cartCount={cart.length} 
@@ -64,7 +64,6 @@ export default function CartPage() {
             )}
           </section>
 
-          {/* RESUMO */}
           <section className="mt-16 lg:col-span-5 lg:mt-0 p-8 bg-gray-50 rounded-2xl border border-gray-100">
             <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-8 border-b border-gray-200 pb-4">Resumo do Pedido_</h2>
             <div className="flow-root">
@@ -87,5 +86,14 @@ export default function CartPage() {
       </main>
       <Footer />
     </div>
+  )
+}
+
+// 3. O export default principal envolve tudo em Suspense
+export default function CartPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-400 animate-pulse">Sincronizando Bolsa_</div>}>
+      <CartContent />
+    </Suspense>
   )
 }
