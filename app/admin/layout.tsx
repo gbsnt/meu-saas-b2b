@@ -6,62 +6,104 @@ import {
   HomeIcon, 
   ShoppingBagIcon, 
   UsersIcon, 
-  Cog6ToothIcon 
+  Cog6ToothIcon,
+  TagIcon, // Ícone para Categorias
+  ArrowLeftOnRectangleIcon
 } from '@heroicons/react/24/outline'
 
 const navigation = [
-  { name: 'Dashboard', href: '/admin', icon: HomeIcon },
-  { name: 'Produtos', href: '/admin/products', icon: ShoppingBagIcon },
-  { name: 'Clientes', href: '/admin/customers', icon: UsersIcon },
-  { name: 'Configurações', href: '/admin/settings', icon: Cog6ToothIcon },
+  { name: 'Dashboard_', href: '/admin', icon: HomeIcon },
+  { name: 'Produtos_', href: '/admin/products', icon: ShoppingBagIcon },
+  { name: 'Categorias_', href: '/admin/categories', icon: TagIcon }, // NOVA ABA
+  { name: 'Clientes_', href: '/admin/customers', icon: UsersIcon },
+  { name: 'Configurações_', href: '/admin/settings', icon: Cog6ToothIcon },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* MENU LATERAL */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="h-20 flex items-center px-8 border-b border-gray-100">
-          <Link href="/" className="text-xl font-black italic uppercase tracking-tighter text-gray-900">
-            STUDIO_
+    <div className="min-h-screen bg-[#FBFBFB] flex">
+      
+      {/* MENU LATERAL - SIDEBAR */}
+      <div className="w-64 bg-white border-r border-gray-100 flex flex-col sticky top-0 h-screen">
+        
+        {/* LOGO ADMIN */}
+        <div className="h-24 flex items-center px-8 border-b border-gray-50">
+          <Link href="/" className="group">
+            <h1 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 group-hover:opacity-60 transition-opacity">
+              STUDIO_
+            </h1>
+            <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.3em] -mt-1 ml-1">Admin Control</p>
           </Link>
-          <span className="ml-2 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">ADMIN</span>
         </div>
         
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        {/* LINKS NAVEGAÇÃO */}
+        <nav className="flex-1 px-4 py-8 space-y-2">
           {navigation.map((item) => {
-            const isActive = pathname === item.href
+            // Lógica para manter ativo mesmo em sub-rotas (ex: /admin/products/new)
+            const isActive = item.href === '/admin' 
+              ? pathname === '/admin' 
+              : pathname.startsWith(item.href)
+
             const Icon = item.icon
+            
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors ${
+                className={`flex items-center gap-3 px-4 py-3.5 rounded-lg text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
                   isActive 
-                    ? 'bg-gray-900 text-white shadow-md' 
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                    ? 'bg-gray-900 text-white shadow-xl shadow-gray-200 translate-x-1' 
+                    : 'text-gray-400 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-gray-300 group-hover:text-gray-900'}`} />
                 {item.name}
               </Link>
             )
           })}
         </nav>
+
+        {/* FOOTER SIDEBAR */}
+        <div className="p-4 border-t border-gray-50">
+          <Link 
+            href="/" 
+            className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors"
+          >
+            <ArrowLeftOnRectangleIcon className="h-4 w-4" />
+            Sair da Loja
+          </Link>
+        </div>
       </div>
 
       {/* ÁREA DE CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col">
-        <header className="h-20 bg-white border-b border-gray-200 flex items-center px-8 justify-end">
-           <div className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-             <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-             Sistema Online
+        
+        {/* TOPBAR */}
+        <header className="h-20 bg-white border-b border-gray-100 flex items-center px-12 justify-between sticky top-0 z-10">
+           <div className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">
+             Painel de Controle v2.0
+           </div>
+           
+           <div className="flex items-center gap-6">
+             <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+               <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
+               Database Online
+             </div>
+             
+             {/* AVATAR SIMBOLICO */}
+             <div className="h-8 w-8 rounded-full bg-gray-900 flex items-center justify-center text-[10px] font-black text-white italic">
+               ST
+             </div>
            </div>
         </header>
-        <main className="flex-1 p-8 overflow-y-auto">
-          {children}
+
+        {/* MAIN CONTENT */}
+        <main className="flex-1 p-12 overflow-y-auto">
+          <div className="max-w-6xl mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>

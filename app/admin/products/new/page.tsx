@@ -8,7 +8,10 @@ import { TrashIcon, ArrowUpIcon, ArrowDownIcon, ChevronLeftIcon } from '@heroico
 export default function NewProductPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  
+  // Novos estados para Categorias e Subcategorias
   const [categories, setCategories] = useState<any[]>([])
+  const [subcategories, setSubcategories] = useState<any[]>([])
   const [tabs, setTabs] = useState<any[]>([])
 
   const [product, setProduct] = useState({
@@ -16,7 +19,8 @@ export default function NewProductPage() {
     description: '',
     price: 0,
     stock: 0,
-    category: '',
+    category_id: '',    // Usa UUID
+    subcategory_id: '', // Usa UUID
     line: '', 
     image_url: '',
     is_active: true,
@@ -28,12 +32,16 @@ export default function NewProductPage() {
     height: 0
   })
 
+  // Busca a árvore de categorias ao carregar a página
   useEffect(() => {
-    async function getCats() {
-      const { data } = await supabase.from('categories').select('name')
-      setCategories(data || [])
+    async function getHierarchy() {
+      const { data: cats } = await supabase.from('categories').select('*').order('name')
+      const { data: subs } = await supabase.from('subcategories').select('*').order('name')
+      
+      setCategories(cats || [])
+      setSubcategories(subs || [])
     }
-    getCats()
+    getHierarchy()
   }, [])
 
   const addTab = () => setTabs([...tabs, { id: Date.now().toString(), name: '', title: '', description: '', image: '' }])
@@ -48,10 +56,28 @@ export default function NewProductPage() {
     setTabs(newTabs)
   }
 
+  // Manipulador para limpar a subcategoria se o Pai for alterado
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setProduct({
+      ...product,
+      category_id: e.target.value,
+      subcategory_id: '' // Reseta a subcategoria
+    })
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const { error } = await supabase.from('products').insert([{ ...product, specs_tabs: tabs }])
+    
+    // Converte IDs vazios para NULL antes de enviar pro banco
+    const insertData = {
+      ...product,
+      category_id: product.category_id || null,
+      subcategory_id: product.subcategory_id || null,
+      specs_tabs: tabs
+    }
+
+    const { error } = await supabase.from('products').insert([insertData])
     setSaving(false)
     if (!error) {
       router.push('/admin/products')
@@ -61,7 +87,6 @@ export default function NewProductPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-32">
-      {/* HEADER IGUAL AO EDIT */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">Novo Produto_</h1>
@@ -87,8 +112,8 @@ export default function NewProductPage() {
           </div>
         </div>
 
+        {/* 2 e 3 INVENTÁRIO E LOGÍSTICA */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 2. INVENTÁRIO */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 space-y-6">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-900 border-b border-gray-100 pb-4">2. Inventário</h2>
             <div className="grid grid-cols-2 gap-6">
@@ -103,7 +128,6 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          {/* 3. LOGÍSTICA */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 space-y-6">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-900 border-b border-gray-100 pb-4">3. Logística (Embalagem)</h2>
             <div className="grid grid-cols-2 gap-4">
@@ -127,19 +151,44 @@ export default function NewProductPage() {
           </div>
         </div>
 
-        {/* 4. ORGANIZAÇÃO E MÍDIA */}
+        {/* 4 E 5. ORGANIZAÇÃO E MÍDIA */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 space-y-6">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-900 border-b border-gray-100 pb-4">4. Organização</h2>
-            <div className="space-y-4">
+            
+            <div className="space-y-6">
+              {/* SELECT CATEGORIA PAI */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Categoria</label>
-                <select value={product.category} onChange={e => setProduct({...product, category: e.target.value})} className="w-full border-b-2 border-gray-100 pb-2 focus:border-gray-900 outline-none bg-transparent text-sm font-bold uppercase text-gray-900">
-                  <option value="">Selecione...</option>
-                  {categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Categoria Principal</label>
+                <select 
+                  required 
+                  value={product.category_id} 
+                  onChange={handleCategoryChange} 
+                  className="w-full border-b-2 border-gray-100 pb-2 focus:border-gray-900 outline-none bg-transparent text-sm font-bold uppercase text-gray-900"
+                >
+                  <option value="">Selecione a Categoria Pai...</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div className="flex items-center gap-3 pt-2">
+
+              {/* SELECT SUBCATEGORIA */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subcategoria</label>
+                <select 
+                  value={product.subcategory_id} 
+                  onChange={e => setProduct({...product, subcategory_id: e.target.value})} 
+                  disabled={!product.category_id}
+                  className="w-full border-b-2 border-gray-100 pb-2 focus:border-gray-900 outline-none bg-transparent text-sm font-bold uppercase text-gray-900 disabled:opacity-40"
+                >
+                  <option value="">Sem Subcategoria</option>
+                  {subcategories
+                    .filter(sub => sub.category_id === product.category_id)
+                    .map(sub => <option key={sub.id} value={sub.id}>{sub.name}</option>)
+                  }
+                </select>
+              </div>
+
+              <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
                 <input type="checkbox" id="active" checked={product.is_active} onChange={e => setProduct({...product, is_active: e.target.checked})} className="w-4 h-4 accent-gray-900" />
                 <label htmlFor="active" className="text-xs font-bold uppercase tracking-widest text-gray-900">Produto Ativo</label>
               </div>

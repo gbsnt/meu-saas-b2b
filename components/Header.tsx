@@ -31,8 +31,28 @@ export default function Header({ cartCount, onOpenCart, isAbsolute = false }: He
 
   useEffect(() => {
     async function loadCategories() {
-      const { data } = await supabase.from('categories').select('name').order('name')
-      setCategories(data || [])
+      // 1. Busca Categorias respeitando a ordem do Drag and Drop
+      const { data: cats } = await supabase
+        .from('categories')
+        .select('id, name, order_index')
+        .order('order_index', { ascending: true })
+
+      // 2. Busca APENAS os IDs/Nomes de categorias que possuem produtos ATIVOS
+      const { data: activeProducts } = await supabase
+        .from('products')
+        .select('category_id, category')
+        .eq('is_active', true) // Filtro crucial: ignora produtos inativos
+
+      if (cats && activeProducts) {
+        // Cria um "catálogo" rápido do que está em uso
+        const activeIds = new Set(activeProducts.map(p => p.category_id))
+        const activeNames = new Set(activeProducts.map(p => p.category))
+
+        // 3. Filtra as categorias vazias
+        const populatedCategories = cats.filter(c => activeIds.has(c.id) || activeNames.has(c.name))
+        
+        setCategories(populatedCategories)
+      }
     }
     loadCategories()
   }, [])
@@ -45,7 +65,7 @@ export default function Header({ cartCount, onOpenCart, isAbsolute = false }: He
     } else {
       router.push('/')
     }
-    setIsMenuOpen(false) // Fecha o menu mobile após buscar
+    setIsMenuOpen(false) 
   }
 
   return (
@@ -64,7 +84,7 @@ export default function Header({ cartCount, onOpenCart, isAbsolute = false }: He
           <div className="hidden lg:flex lg:items-center lg:gap-x-8">
             {categories.map((category) => (
               <a
-                key={category.name}
+                key={category.id}
                 href={`/category/${encodeURIComponent(category.name)}`}
                 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 hover:text-gray-900 transition-colors"
               >
@@ -138,7 +158,7 @@ export default function Header({ cartCount, onOpenCart, isAbsolute = false }: He
               <div className="grid grid-cols-1 gap-y-4">
                 {categories.map((category) => (
                   <a
-                    key={category.name}
+                    key={category.id}
                     href={`/category/${encodeURIComponent(category.name)}`}
                     className="text-lg font-black uppercase italic tracking-tighter text-gray-900 hover:text-gray-400 transition-colors"
                     onClick={() => setIsMenuOpen(false)}

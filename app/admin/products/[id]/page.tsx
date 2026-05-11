@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { supabase } from '../../../../lib/supabase'
+import { supabase } from '../../../../lib/supabase' // Ajuste o caminho se necessário
 import { TrashIcon, ArrowUpIcon, ArrowDownIcon, ChevronLeftIcon } from '@heroicons/react/24/outline'
 
 export default function EditProductPage() {
@@ -14,7 +14,9 @@ export default function EditProductPage() {
   const [saving, setSaving] = useState(false)
   const [loadingError, setLoadingError] = useState<string | null>(null)
   
+  // Novos estados para a Hierarquia
   const [categories, setCategories] = useState<any[]>([])
+  const [subcategories, setSubcategories] = useState<any[]>([])
   const [tabs, setTabs] = useState<any[]>([])
 
   const [product, setProduct] = useState({
@@ -22,7 +24,8 @@ export default function EditProductPage() {
     description: '',
     price: 0,
     stock: 0,
-    category: '',
+    category_id: '',    // Atualizado para ID
+    subcategory_id: '', // Novo campo
     line: '', 
     image_url: '',
     is_active: true,
@@ -39,6 +42,14 @@ export default function EditProductPage() {
       if (!id) return
       try {
         setLoading(true)
+        
+        // 1. Busca Categorias e Subcategorias primeiro
+        const { data: cats } = await supabase.from('categories').select('*').order('name')
+        const { data: subs } = await supabase.from('subcategories').select('*').order('name')
+        setCategories(cats || [])
+        setSubcategories(subs || [])
+
+        // 2. Busca o Produto
         const { data: p, error: pError } = await supabase.from('products').select('*').eq('id', id).single()
         if (pError) throw new Error(pError.message)
 
@@ -48,7 +59,8 @@ export default function EditProductPage() {
             description: p.description || '',
             price: p.price || 0,
             stock: p.stock || 0,
-            category: p.category || '',
+            category_id: p.category_id || '',       // Puxa o ID
+            subcategory_id: p.subcategory_id || '', // Puxa o ID
             line: p.line || '',
             image_url: p.image_url || '',
             is_active: p.is_active ?? true,
@@ -61,8 +73,6 @@ export default function EditProductPage() {
           })
           setTabs(p.specs_tabs || [])
         }
-        const { data: c } = await supabase.from('categories').select('name')
-        setCategories(c || [])
       } catch (err: any) {
         setLoadingError(err.message)
       } finally {
@@ -72,6 +82,7 @@ export default function EditProductPage() {
     fetchData()
   }, [id])
 
+  // Lógica das Abas Técnicas
   const addTab = () => setTabs([...tabs, { id: Date.now().toString(), name: '', title: '', description: '', image: '' }])
   const updateTab = (index: number, field: string, value: string) => {
     const newTabs = [...tabs]; newTabs[index][field] = value; setTabs(newTabs);
@@ -84,18 +95,40 @@ export default function EditProductPage() {
     setTabs(newTabs)
   }
 
+  // Manipulador de Mudança da Categoria Pai (Limpa a subcategoria)
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setProduct({
+      ...product,
+      category_id: e.target.value,
+      subcategory_id: '' // Reseta a sub ao mudar a pai
+    })
+  }
+
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const { error } = await supabase.from('products').update({ ...product, specs_tabs: tabs }).eq('id', id)
+    
+    // Tratamento para garantir que IDs vazios virem NULL no banco
+    const updateData = {
+      ...product,
+      category_id: product.category_id || null,
+      subcategory_id: product.subcategory_id || null,
+      specs_tabs: tabs
+    }
+
+    const { error } = await supabase.from('products').update(updateData).eq('id', id)
+    
     setSaving(false)
     if (!error) {
       router.push('/admin/products')
       router.refresh()
-    } else alert("Erro ao salvar: " + error.message)
+    } else {
+      alert("Erro ao salvar: " + error.message)
+    }
   }
 
   if (loading) return <div className="p-10 text-center uppercase text-xs font-black animate-pulse text-gray-400 mt-20">Carregando Painel_</div>
+  if (loadingError) return <div className="p-10 text-center text-red-500 font-bold">{loadingError}</div>
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-32">
@@ -146,20 +179,44 @@ export default function EditProductPage() {
           </div>
         </div>
 
+        {/* NOVA ÁREA DE ORGANIZAÇÃO (CASCATA) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 space-y-6">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-900 border-b border-gray-100 pb-4">4. Organização</h2>
-            <div className="space-y-4">
+            
+            <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Categoria</label>
-                <select value={product.category} onChange={e => setProduct({...product, category: e.target.value})} className="w-full border-b-2 border-gray-100 pb-2 focus:border-gray-900 outline-none bg-transparent text-sm font-bold uppercase text-gray-900">
-                  <option value="">Selecione...</option>
-                  {categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Categoria Principal</label>
+                <select 
+                  required
+                  value={product.category_id} 
+                  onChange={handleCategoryChange} 
+                  className="w-full border-b-2 border-gray-100 pb-2 focus:border-gray-900 outline-none bg-transparent text-sm font-bold uppercase text-gray-900"
+                >
+                  <option value="">Selecione a Categoria Pai...</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div className="flex items-center gap-3 pt-2">
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subcategoria</label>
+                <select 
+                  value={product.subcategory_id} 
+                  onChange={e => setProduct({...product, subcategory_id: e.target.value})} 
+                  disabled={!product.category_id}
+                  className="w-full border-b-2 border-gray-100 pb-2 focus:border-gray-900 outline-none bg-transparent text-sm font-bold uppercase text-gray-900 disabled:opacity-40"
+                >
+                  <option value="">Sem Subcategoria</option>
+                  {subcategories
+                    .filter(sub => sub.category_id === product.category_id)
+                    .map(sub => <option key={sub.id} value={sub.id}>{sub.name}</option>)
+                  }
+                </select>
+              </div>
+
+              <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
                 <input type="checkbox" id="active" checked={product.is_active} onChange={e => setProduct({...product, is_active: e.target.checked})} className="w-4 h-4 accent-gray-900" />
-                <label htmlFor="active" className="text-xs font-bold uppercase tracking-widest text-gray-900">Produto Ativo</label>
+                <label htmlFor="active" className="text-xs font-bold uppercase tracking-widest text-gray-900">Produto Ativo na Loja</label>
               </div>
             </div>
           </div>
