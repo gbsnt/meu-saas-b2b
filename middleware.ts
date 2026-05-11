@@ -38,11 +38,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // --- 1. LISTA DE ROTAS DO SISTEMA (PÁGINAS GLOBAIS) ---
-  // Adicionamos /checkout e /cart aqui para que o middleware as ignore
-  const systemRoutes = ['/checkout', '/cart', '/login', '/api', '/_next'];
+  // AQUI ESTÁ A MÁGICA: Adicionamos o '/admin' para que o middleware ignore a verificação de subdomínio nele
+  const systemRoutes = ['/admin', '/checkout', '/cart', '/login', '/api', '/_next'];
   const isSystemRoute = systemRoutes.some(route => pathname.startsWith(route));
 
-  // Se for uma rota do sistema, deixa passar direto sem olhar subdomínio
+  // Se for uma rota do sistema (como o admin), deixa passar direto sem olhar subdomínio
   if (isSystemRoute) {
     return NextResponse.next();
   }
@@ -50,7 +50,7 @@ export async function middleware(request: NextRequest) {
   const subdomain = extractSubdomain(request);
 
   if (subdomain) {
-    // Bloqueia acesso ao admin via subdomínio
+    // Bloqueia acesso ao admin via subdomínio (já estava aqui por segurança)
     if (pathname.startsWith('/admin')) {
       return NextResponse.redirect(new URL('/', request.url));
     }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCart } from '../../lib/CartContext'
+import { useCart } from '../../components/CartContext'
 import Link from 'next/link'
 import { ShieldCheckIcon, LockClosedIcon } from '@heroicons/react/24/outline'
 

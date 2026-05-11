@@ -2,7 +2,7 @@
 
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react'
 import { XMarkIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline'
-import { useCart } from '../lib/CartContext'
+import { useCart } from './CartContext'
 import Link from 'next/link' // Importação essencial para navegação interna
 
 export default function CartDrawer() {

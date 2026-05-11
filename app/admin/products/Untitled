@@ -1,0 +1,62 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { supabase } from '../../../lib/supabase'
+import { TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline'
+
+export default function AdminProducts() {
+  const [products, setProducts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  async function loadProducts() {
+    setLoading(true)
+    const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false })
+    setProducts(data || [])
+    setLoading(false)
+  }
+
+  useEffect(() => { loadProducts() }, [])
+
+  async function handleDelete(id: string) {
+    if (!confirm("Tem certeza que deseja excluir este produto?")) return
+    
+    const { error } = await supabase.from('products').delete().eq('id', id)
+    if (error) alert("Erro ao excluir: " + error.message)
+    else loadProducts()
+  }
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">Produtos_</h1>
+        <a href="/admin/products/new" className="bg-gray-900 text-white px-6 py-3 rounded-md text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg">
+          + Novo Produto
+        </a>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {loading ? (
+          <div className="p-10 text-center text-xs font-bold text-gray-400 uppercase tracking-widest animate-pulse">
+            Carregando catálogo...
+          </div>
+        ) : (
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Produto</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Categoria</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Preço</th>
+                <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {products.map((product) => (
+                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 text-sm font-bold text-gray-900 uppercase">{product.name}</td>
+                  <td className="px-6 py-4">
+                    <span className="bg-gray-100 px-2 py-1 rounded text-[10px] font-bold text-gray-500 uppercase">{product.category || 'Sem Categoria'}</span>
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-600 tabular-nums">R$ {product.price}</td>
+                  <td className="px-6 py-4 text-right flex justify-end gap-4">
+                    {/* LINK PARA A PÁGINA DE EDIÇÃO */}
+                    <a href={`/admin/

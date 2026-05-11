@@ -1,7 +1,8 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { CartProvider } from '../lib/CartContext' // Importando o contexto que criamos
+import { CartProvider } from '../components/CartContext' 
+import CartSidebar from '../components/CartSidebar' 
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -18,8 +19,10 @@ export default function RootLayout({
   return (
     <html lang="pt-br" className="scroll-smooth">
       <body className={inter.className}>
-        {/* O CartProvider envolve toda a aplicação */}
         <CartProvider>
+          {/* O CartSidebar precisa estar aqui para o Header conseguir abrir ele */}
+          <CartSidebar /> 
+          
           {children}
         </CartProvider>
       </body>

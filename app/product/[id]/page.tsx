@@ -3,81 +3,61 @@
 import { useState, useEffect, use } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
-import { useCart } from '../../../lib/CartContext' // IMPORTANDO O MOTOR DE VENDAS
+import { useCart } from '../../../components/CartContext' 
 
-// COMPONENTES DO NOSSO LEGO
+// COMPONENTES
 import Header from '../../../components/Header'
 import Footer from '../../../components/Footer'
 import Breadcrumb from '../../../components/Breadcrumb'
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const { cart, addToCart } = useCart() // ACESSANDO O CARRINHO GLOBAL
-  
-  // Estados do Produto
+  const { cart, addToCart, setIsCartOpen } = useCart() 
   const [product, setProduct] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   
-  // Controle da Gaveta (UI)
-  const [isCartOpen, setIsCartOpen] = useState(false)
+  // ESTADO DE QUANTIDADE LOCAL
+  const [quantity, setQuantity] = useState(1)
 
-  // Busca o produto no Supabase
   useEffect(() => {
     async function loadProduct() {
-      setLoading(true)
-      const { data } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single()
-      
-      setProduct(data)
-      setLoading(false)
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .eq('is_active', true) // Só traz se estiver ativo
+          .single()
+        
+        if (error || !data) {
+          setProduct(null) // Define como null se estiver inativo ou não existir
+        } else {
+          setProduct(data)
+        }
+      } catch (err) {
+        console.error("Erro:", err)
+      } finally {
+        setLoading(false)
+      }
     }
     loadProduct()
   }, [id])
 
-  // DADOS DAS ABAS TÉCNICAS
-  const specsTabs = [
-    {
-      name: 'Design',
-      title: 'Minimalismo Arquitetônico',
-      description: 'O sistema modular STUDIO_ oferece opções infinitas para organizar seus itens essenciais. Mantendo tudo ao alcance e em seu devido lugar, enquanto eleva a estética do seu espaço pessoal.',
-      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2000&auto=format&fit=crop'
-    },
-    {
-      name: 'Material',
-      title: 'Fibras de Alta Performance',
-      description: 'Utilizamos apenas materiais de base rica, como linho europeu e algodão Pima de alta densidade. Cada peça é lixada à mão e acabada com óleos naturais para um toque orgânico único.',
-      image: 'https://images.unsplash.com/photo-1558273109-28253922244a?q=80&w=2000&auto=format&fit=crop'
-    },
-    {
-      name: 'Considerations',
-      title: 'Feito para a Vida Real',
-      description: 'Nossos clientes utilizam as peças STUDIO_ em diversas rotinas diárias. Aproveite a versatilidade no trabalho, em casa ou em viagens. Mal podemos esperar para ver como você as integrará ao seu lifestyle.',
-      image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2000&auto=format&fit=crop'
-    },
-    {
-      name: 'Included',
-      title: 'A Experiência Completa',
-      description: 'O conjunto básico inclui a peça principal, nossa Dust Bag exclusiva de algodão orgânico e um certificado de autenticidade numerado, garantindo a exclusividade da sua curadoria.',
-      image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?q=80&w=2000&auto=format&fit=crop'
-    }
-  ]
-
-  if (loading) return <div className="h-screen flex items-center justify-center text-xs uppercase tracking-widest text-gray-400 font-bold">Loading_</div>
+  if (loading) return <div className="h-screen flex items-center justify-center text-xs uppercase tracking-widest text-gray-400 font-bold animate-pulse">Loading_</div>
   if (!product) return <div className="h-screen flex items-center justify-center text-xs uppercase tracking-widest text-gray-400 font-bold">Product not found.</div>
 
+  const specsTabs = product.specs_tabs || []
+
   return (
-    <div className="bg-white">
-      {/* 1. HEADER CONECTADO AO CARRINHO REAL */}
+    <div className="bg-white min-h-screen flex flex-col">
       <Header 
          isAbsolute={false}
          cartCount={cart.length} 
-        onOpenCart={() => setIsCartOpen(true)} 
-        />
+         onOpenCart={() => setIsCartOpen(true)} 
+      />
 
-      <main>
+      <main className="flex-1">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           
           <Breadcrumb 
@@ -88,21 +68,40 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
           />
 
           <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-12 mt-8">
-            <div className="aspect-square w-full overflow-hidden rounded-xl shadow-2xl bg-gray-50">
-              <img 
-                src={product.image_url} 
-                alt={product.name} 
-                className="h-full w-full object-cover object-center" 
-              />
+            {/* GALERIA DE IMAGEM */}
+            <div className="aspect-square w-full overflow-hidden rounded-xl shadow-2xl bg-gray-50 flex items-center justify-center border border-gray-100">
+              {product.image_url ? (
+                <img 
+                  src={product.image_url} 
+                  alt={product.name} 
+                  className="h-full w-full object-cover object-center" 
+                />
+              ) : (
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-300">Sem Imagem</span>
+              )}
             </div>
 
+            {/* INFO DO PRODUTO */}
             <div className="mt-10 px-4 sm:mt-16 sm:px-0 lg:mt-0">
               <h1 className="text-4xl font-black italic tracking-tight text-gray-900 uppercase">
                 {product.name}_
               </h1>
-              <p className="mt-4 text-3xl font-black italic tracking-tight text-gray-900">
-                R$ {product.price}
-              </p>
+              
+              <div className="flex items-center gap-4 mt-4">
+                <p className="text-3xl font-black italic tracking-tight text-gray-900 tabular-nums">
+                  R$ {product.price}
+                </p>
+                {/* SELO DE ESTOQUE */}
+                {product.stock > 0 ? (
+                  <span className="text-[10px] font-black uppercase tracking-widest text-green-600 bg-green-50 px-2 py-1 rounded">
+                    {product.stock} disponíveis
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100">
+                    Esgotado_
+                  </span>
+                )}
+              </div>
 
               <div className="mt-8 border-t border-gray-100 pt-8">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">The Story_</h3>
@@ -111,76 +110,122 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </p>
               </div>
 
-              {/* BOTÃO COM LÓGICA DE VENDA */}
+              {/* CONTROLE DE QUANTIDADE E BOTÃO */}
+              {product.stock > 0 && (
+                <div className="mt-10 flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Quantidade:</label>
+                    <select 
+                      value={quantity}
+                      onChange={(e) => setQuantity(Number(e.target.value))}
+                      className="bg-gray-50 border border-gray-200 rounded px-4 py-2 text-xs font-bold outline-none focus:border-gray-900 appearance-none cursor-pointer"
+                    >
+                      {/* Cria opções até o limite do estoque (máximo 10) */}
+                      {[...Array(Math.min(product.stock, 10))].map((_, i) => (
+                        <option key={i + 1} value={i + 1}>
+                          {i + 1}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
               <button 
+                disabled={product.stock <= 0}
                 onClick={() => {
-                  addToCart(product);
-                  setIsCartOpen(true); // Abre a gaveta de UI (que criaremos a seguir)
+                  addToCart(product, quantity);
                 }}
-                className="mt-10 flex w-full items-center justify-center rounded-md bg-gray-900 px-8 py-5 text-xs font-black uppercase tracking-[0.3em] text-white hover:bg-gray-800 transition-all shadow-2xl active:scale-[0.98]"
+                className={`mt-6 flex w-full items-center justify-center rounded-md px-8 py-5 text-xs font-black uppercase tracking-[0.3em] transition-all shadow-2xl 
+                  ${product.stock > 0 
+                    ? 'bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.98]' 
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                  }`}
               >
-                Add to Bag
+                {product.stock > 0 ? `Add ${quantity > 1 ? quantity : ''} to Bag` : 'Sold Out_'}
               </button>
             </div>
           </div>
         </div>
 
-        <section aria-labelledby="features-heading" className="mx-auto max-w-7xl py-24 sm:px-6 sm:py-32 lg:px-8 border-t border-gray-100">
-          <div className="mx-auto max-w-2xl px-4 lg:max-w-none lg:px-0">
-            <div className="max-w-3xl">
-              <h2 id="features-heading" className="text-4xl font-black italic tracking-tight text-gray-900 uppercase">
-                Technical Specifications_
-              </h2>
-              <p className="mt-4 text-gray-500 font-medium leading-relaxed">
-                Nossa engenharia de produto foca no equilíbrio entre forma e função. Cada detalhe é projetado para durar e evoluir com você através dos anos.
-              </p>
-            </div>
-
-            <TabGroup className="mt-16">
-              <div className="-mx-4 flex overflow-x-auto sm:mx-0">
-                <div className="flex-auto border-b border-gray-200 px-4 sm:px-0">
-                  <TabList className="-mb-px flex space-x-10">
-                    {specsTabs.map((tab) => (
-                      <Tab
-                        key={tab.name}
-                        className="whitespace-nowrap border-b-2 border-transparent py-6 text-xs font-black uppercase tracking-widest text-gray-400 outline-none hover:border-gray-900 hover:text-gray-900 data-[selected]:border-gray-900 data-[selected]:text-gray-900 transition-all"
-                      >
-                        {tab.name}
-                      </Tab>
-                    ))}
-                  </TabList>
+        {/* SEÇÃO DE ESPECIFICAÇÕES */}
+        {specsTabs.length > 0 && (
+          <section aria-labelledby="features-heading" className="mx-auto max-w-7xl py-24 sm:px-6 sm:py-32 lg:px-8 border-t border-gray-100">
+            <div className="mx-auto max-w-2xl px-4 lg:max-w-none lg:px-0">
+              
+              {(product.features_title || product.features_description) && (
+                <div className="max-w-3xl mb-16">
+                  {product.features_title && (
+                    <h2 id="features-heading" className="text-4xl font-black italic tracking-tight text-gray-900 uppercase">
+                      {product.features_title}
+                    </h2>
+                  )}
+                  {product.features_description && (
+                    <p className="mt-4 text-gray-500 font-medium leading-relaxed whitespace-pre-line">
+                      {product.features_description}
+                    </p>
+                  )}
                 </div>
-              </div>
+              )}
 
-              <TabPanels as="div" className="mt-10">
-                {specsTabs.map((tab) => (
-                  <TabPanel key={tab.name} className="space-y-16 pt-10 lg:pt-16 outline-none">
-                    <div className="flex flex-col-reverse lg:grid lg:grid-cols-12 lg:items-center lg:gap-x-8">
-                      <div className="mt-6 lg:col-span-5 lg:mt-0">
-                        <h3 className="text-lg font-bold text-gray-900 uppercase tracking-widest">
-                          {tab.title}
-                        </h3>
-                        <p className="mt-2 text-sm text-gray-500 leading-relaxed font-medium">
-                          {tab.description}
-                        </p>
-                      </div>
-                      
-                      <div className="lg:col-span-7">
-                        <div className="aspect-[5/2] overflow-hidden rounded-lg bg-gray-100 shadow-lg">
-                          <img 
-                            src={tab.image} 
-                            alt={tab.title} 
-                            className="size-full object-cover grayscale hover:grayscale-0 transition-all duration-700 cursor-crosshair" 
-                          />
+              <TabGroup>
+                <div className="-mx-4 flex overflow-x-auto sm:mx-0">
+                  <div className="flex-auto border-b border-gray-200 px-4 sm:px-0">
+                    <TabList className="-mb-px flex space-x-10">
+                      {specsTabs.map((tab: any, idx: number) => (
+                        <Tab
+                          key={idx}
+                          className="whitespace-nowrap border-b-2 border-transparent py-6 text-xs font-black uppercase tracking-widest text-gray-400 outline-none hover:border-gray-900 hover:text-gray-900 data-[selected]:border-gray-900 data-[selected]:text-gray-900 transition-all cursor-pointer"
+                        >
+                          {tab.name}
+                        </Tab>
+                      ))}
+                    </TabList>
+                  </div>
+                </div>
+
+                <TabPanels as="div" className="mt-10">
+                  {specsTabs.map((tab: any, idx: number) => {
+                    const hasText = tab.title || tab.description;
+                    const hasImage = tab.image;
+
+                    return (
+                      <TabPanel key={idx} className="space-y-16 pt-10 lg:pt-16 outline-none">
+                        <div className="flex flex-col-reverse lg:grid lg:grid-cols-12 lg:items-center lg:gap-x-8">
+                          {hasText && (
+                            <div className={`mt-6 lg:mt-0 ${hasImage ? 'lg:col-span-5' : 'lg:col-span-12'}`}>
+                              {tab.title && (
+                                <h3 className="text-lg font-bold text-gray-900 uppercase tracking-widest">
+                                  {tab.title}
+                                </h3>
+                              )}
+                              {tab.description && (
+                                <p className="mt-2 text-sm text-gray-500 leading-relaxed font-medium whitespace-pre-line">
+                                  {tab.description}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {hasImage && (
+                            <div className={`${hasText ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
+                              <div className="aspect-[5/2] overflow-hidden rounded-lg bg-gray-50 border border-gray-100 shadow-sm flex items-center justify-center">
+                                <img 
+                                  src={tab.image} 
+                                  alt={tab.title || product.name} 
+                                  className="size-full object-cover grayscale hover:grayscale-0 transition-all duration-700 cursor-crosshair" 
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    </div>
-                  </TabPanel>
-                ))}
-              </TabPanels>
-            </TabGroup>
-          </div>
-        </section>
+                      </TabPanel>
+                    );
+                  })}
+                </TabPanels>
+              </TabGroup>
+            </div>
+          </section>
+        )}
       </main>
 
       <Footer />
