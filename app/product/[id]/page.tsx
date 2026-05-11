@@ -9,6 +9,7 @@ import { useCart } from '../../../components/CartContext'
 import Header from '../../../components/Header'
 import Footer from '../../../components/Footer'
 import Breadcrumb from '../../../components/Breadcrumb'
+import ShippingCalculator from '../../../components/ShippingCalculator' // <--- ADICIONADO
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -85,7 +86,6 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           
-          {/* BREADCRUMB AJUSTADO: Sem "Shop", apenas Categoria > Produto */}
           <Breadcrumb 
             items={[
               ...(categoryName ? [{ 
@@ -166,6 +166,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                   >
                     Add {quantity > 1 ? `(${quantity})` : ''} to Bag_
                   </button>
+
+                  {/* CÁLCULO DE FRETE INTEGRADO AQUI */}
+                  <ShippingCalculator /> 
                 </div>
               )}
 
