@@ -24,13 +24,11 @@ export default function Header({ cartCount, onOpenCart, isAbsolute = false }: He
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
-  // 1. Sincroniza o input com o que está na URL (caso o usuário dê F5)
   useEffect(() => {
     const query = searchParams.get('search')
     if (query) setSearchQuery(query)
   }, [searchParams])
 
-  // 2. Busca categorias para o menu
   useEffect(() => {
     async function loadCategories() {
       const { data } = await supabase.from('categories').select('name').order('name')
@@ -39,17 +37,15 @@ export default function Header({ cartCount, onOpenCart, isAbsolute = false }: He
     loadCategories()
   }, [])
 
-  // 3. Função de Disparo da Pesquisa
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    // Normalizamos a URL para evitar erros de acentuação no envio
     const term = searchQuery.trim()
     if (term) {
       router.push(`/?search=${encodeURIComponent(term)}`)
     } else {
       router.push('/')
     }
-    setIsMenuOpen(false) // Fecha o menu mobile se estiver aberto
+    setIsMenuOpen(false) // Fecha o menu mobile após buscar
   }
 
   return (
@@ -64,7 +60,7 @@ export default function Header({ cartCount, onOpenCart, isAbsolute = false }: He
             </a>
           </div>
 
-          {/* NAVEGAÇÃO DESKTOP */}
+          {/* NAVEGAÇÃO DESKTOP (CATEGORIAS) */}
           <div className="hidden lg:flex lg:items-center lg:gap-x-8">
             {categories.map((category) => (
               <a
@@ -77,17 +73,17 @@ export default function Header({ cartCount, onOpenCart, isAbsolute = false }: He
             ))}
           </div>
 
-          {/* BARRA DE PESQUISA + ÍCONES */}
-          <div className="flex flex-1 items-center justify-end gap-4 sm:gap-6">
+          {/* ÍCONES LADO DIREITO */}
+          <div className="flex items-center justify-end gap-2 sm:gap-6">
             
-            {/* INPUT DE BUSCA */}
-            <form onSubmit={handleSearch} className="relative flex items-center group">
+            {/* BUSCA DESKTOP (ESCONDIDA NO MOBILE) */}
+            <form onSubmit={handleSearch} className="hidden lg:relative lg:flex items-center group">
               <input
                 type="text"
                 placeholder="PROCURAR_"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-24 sm:w-40 border-b border-gray-200 bg-transparent py-1 text-[10px] font-black uppercase tracking-widest outline-none focus:w-48 sm:focus:w-64 focus:border-gray-900 transition-all duration-500 placeholder:text-gray-300"
+                className="w-40 border-b border-gray-200 bg-transparent py-1 text-[10px] font-black uppercase tracking-widest outline-none focus:w-64 focus:border-gray-900 transition-all duration-500"
               />
               <button type="submit" className="ml-2 group-hover:scale-110 transition-transform">
                 <MagnifyingGlassIcon className="h-4 w-4 text-gray-400 group-hover:text-gray-900" />
@@ -104,28 +100,53 @@ export default function Header({ cartCount, onOpenCart, isAbsolute = false }: He
               )}
             </button>
 
-            {/* MENU MOBILE BOTÃO */}
+            {/* BOTÃO MENU MOBILE (HAMBÚRGUER) */}
             <button className="lg:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              {isMenuOpen ? <XMarkIcon className="h-6 w-6 text-gray-900" /> : <Bars3Icon className="h-6 w-6 text-gray-900" />}
+              {isMenuOpen ? (
+                <XMarkIcon className="h-6 w-6 text-gray-900" />
+              ) : (
+                <Bars3Icon className="h-6 w-6 text-gray-900" />
+              )}
             </button>
           </div>
         </div>
 
-        {/* MOBILE OVERLAY */}
+        {/* MENU MOBILE (OVERLAY) */}
         {isMenuOpen && (
-          <div className="lg:hidden border-t border-gray-100 py-8 space-y-6 animate-in slide-in-from-top-2 duration-300">
-            <div className="space-y-4 px-2">
-              <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.3em] mb-4">Categorias_</p>
-              {categories.map((category) => (
-                <a
-                  key={category.name}
-                  href={`/category/${encodeURIComponent(category.name)}`}
-                  className="block text-sm font-black uppercase tracking-widest text-gray-600 hover:text-gray-900"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {category.name}
-                </a>
-              ))}
+          <div className="lg:hidden border-t border-gray-100 py-10 space-y-10 animate-in slide-in-from-top-2 duration-300 bg-white absolute inset-x-0 z-40 px-6 shadow-xl">
+            
+            {/* BUSCA DENTRO DO MENU MOBILE (IDÊNTICA À WEB) */}
+            <div className="space-y-4">
+              <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.3em]">Search_</p>
+              <form onSubmit={handleSearch} className="relative flex items-center w-full">
+                <input
+                  type="text"
+                  placeholder="O QUE VOCÊ PROCURA?_"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full border-b-2 border-gray-100 bg-transparent py-3 text-[11px] font-black uppercase tracking-widest outline-none focus:border-gray-900 transition-all placeholder:text-gray-200"
+                />
+                <button type="submit" className="absolute right-0 p-2">
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                </button>
+              </form>
+            </div>
+
+            {/* CATEGORIAS MOBILE */}
+            <div className="space-y-6">
+              <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.3em]">Categorias_</p>
+              <div className="grid grid-cols-1 gap-y-4">
+                {categories.map((category) => (
+                  <a
+                    key={category.name}
+                    href={`/category/${encodeURIComponent(category.name)}`}
+                    className="text-lg font-black uppercase italic tracking-tighter text-gray-900 hover:text-gray-400 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {category.name}
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
         )}
