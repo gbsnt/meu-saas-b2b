@@ -22,7 +22,6 @@ import { CSS } from '@dnd-kit/utilities'
 
 // --- COMPONENTES DE ARRASTO E DROP ---
 
-// Zona específica para soltar o produto na "Categoria Principal"
 function MainCategoryDropZone({ id }: { id: string }) {
   const { isOver, setNodeRef } = useDroppable({
     id: `main-drop-${id}`,
@@ -105,30 +104,23 @@ export default function AdminCategories() {
 
   useEffect(() => { loadData() }, [])
 
-  // FUNÇÃO PARA ATIVAR/DESATIVAR NA HOME
   async function handleToggleHomeVisibility(id: string, currentStatus: boolean) {
-    const { error } = await supabase
-      .from('categories')
-      .update({ show_on_home: !currentStatus })
-      .eq('id', id)
-
-    if (!error) {
-      setCategories(prev => prev.map(c => c.id === id ? { ...c, show_on_home: !currentStatus } : c))
-    } else {
-      alert("Erro ao alterar visibilidade: " + error.message)
-    }
+    const { error } = await supabase.from('categories').update({ show_on_home: !currentStatus }).eq('id', id)
+    if (!error) setCategories(prev => prev.map(c => c.id === id ? { ...c, show_on_home: !currentStatus } : c))
   }
 
-  // --- LÓGICA DE DRAG AND DROP ---
+  async function handleToggleSubHomeVisibility(id: string, currentStatus: boolean) {
+    const { error } = await supabase.from('subcategories').update({ show_on_home: !currentStatus }).eq('id', id)
+    if (!error) setSubcategories(prev => prev.map(s => s.id === id ? { ...s, show_on_home: !currentStatus } : s))
+  }
+
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over) return
-
     const activeData = active.data.current
     const overData = over.data.current
     if (!activeData || !overData) return
 
-    // 1. REORDENAR CATEGORIAS
     if (activeData.type === 'Category' && overData.type === 'Category') {
       if (active.id === over.id) return
       setCategories((items) => {
@@ -139,8 +131,6 @@ export default function AdminCategories() {
         return newOrder
       })
     }
-
-    // 2. REORDENAR SUBCATEGORIAS
     else if (activeData.type === 'Subcategory' && overData.type === 'Subcategory') {
       if (active.id === over.id) return
       if (activeData.item.category_id === overData.item.category_id) {
@@ -153,49 +143,19 @@ export default function AdminCategories() {
         })
       }
     }
-
-    // 3. MOVER PRODUTO 
     else if (activeData.type === 'Product') {
       let newCatId = activeData.item.category_id
       let newSubId = activeData.item.subcategory_id
-
-      // Se soltar na zona "Principal" da Categoria
-      if (overData.type === 'CategoryMain') {
-        newCatId = overData.catId
-        newSubId = null
-      } 
-      // Se soltar em uma Subcategoria
-      else if (overData.type === 'Subcategory') {
-        newCatId = overData.item.category_id
-        newSubId = over.id
-      }
-      // Se soltar em outro Produto (pega o lugar dele)
-      else if (overData.type === 'Product') {
-        newCatId = overData.item.category_id
-        newSubId = overData.item.subcategory_id
-      }
-      // Se soltar no card da categoria (fallback)
-      else if (overData.type === 'Category') {
-        newCatId = over.id
-        newSubId = null
-      }
-
-      // Evita update desnecessário se não mudou nada
+      if (overData.type === 'CategoryMain') { newCatId = overData.catId; newSubId = null; } 
+      else if (overData.type === 'Subcategory') { newCatId = overData.item.category_id; newSubId = over.id; }
+      else if (overData.type === 'Product') { newCatId = overData.item.category_id; newSubId = overData.item.subcategory_id; }
+      else if (overData.type === 'Category') { newCatId = over.id; newSubId = null; }
       if (newCatId === activeData.item.category_id && newSubId === activeData.item.subcategory_id) return
-
-      // Update UI
       setProducts(prev => prev.map(p => p.id === active.id ? { ...p, category_id: newCatId, subcategory_id: newSubId } : p))
-      
-      // Update DB
-      await supabase.from('products').update({ 
-        category_id: newCatId, 
-        subcategory_id: newSubId,
-        category: null 
-      }).eq('id', active.id)
+      await supabase.from('products').update({ category_id: newCatId, subcategory_id: newSubId, category: null }).eq('id', active.id)
     }
   }
 
-  // --- CRUD RESTANTE ---
   async function handleAddCategory(e: React.FormEvent) {
     e.preventDefault(); if (!newCategory.trim() || processing) return;
     setProcessing(true);
@@ -223,7 +183,7 @@ export default function AdminCategories() {
     const name = newSub[catId]?.trim(); if (!name || processing) return;
     setProcessing(true);
     const subsCount = subcategories.filter(s => s.category_id === catId).length;
-    const { error } = await supabase.from('subcategories').insert([{ name, category_id: catId, order_index: subsCount }]);
+    const { error } = await supabase.from('subcategories').insert([{ name, category_id: catId, order_index: subsCount, show_on_home: true }]);
     if (!error) { setNewSub({ ...newSub, [catId]: '' }); await loadData(); }
     setProcessing(false);
   }
@@ -245,7 +205,6 @@ export default function AdminCategories() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* NOVA CATEGORIA */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm sticky top-28">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] mb-6 text-gray-900">Nova Categoria Pai_</h2>
@@ -261,7 +220,6 @@ export default function AdminCategories() {
           </div>
         </div>
 
-        {/* LISTAGEM DRAG AND DROP */}
         <div className="lg:col-span-2 space-y-6">
           {loading ? (
             <div className="py-20 text-center text-[10px] font-black text-gray-300 uppercase tracking-widest animate-pulse">Sincronizando Database_</div>
@@ -279,19 +237,16 @@ export default function AdminCategories() {
                         {({ attributes, listeners }: any) => (
                           <div className={`bg-white rounded-2xl border transition-all ${isEditing ? 'border-gray-900 ring-1 ring-gray-900' : 'border-gray-100 shadow-sm'}`}>
                             
-                            {/* HEADER CATEGORIA */}
                             <div className="bg-gray-50/50 px-6 py-4 flex items-center justify-between border-b border-gray-100">
                               <div className="flex items-center gap-4 w-full">
-                                <button {...attributes} {...listeners} className="text-gray-300 hover:text-gray-900 cursor-grab active:cursor-grabbing p-1 touch-none">
+                                <button {...attributes} {...listeners} className="text-gray-300 hover:text-gray-900 cursor-grab p-1 touch-none">
                                   <Bars2Icon className="h-5 w-5" />
                                 </button>
                                 
                                 <div className="flex items-center gap-3">
-                                  {/* BOTÃO DE VISIBILIDADE NA HOME */}
                                   <button 
                                     onClick={() => handleToggleHomeVisibility(cat.id, cat.show_on_home)}
-                                    title={cat.show_on_home ? "Visível na Home" : "Oculto na Home"}
-                                    className={`transition-colors p-1 rounded hover:bg-gray-200/50 ${cat.show_on_home ? 'text-gray-900' : 'text-gray-300 hover:text-gray-500'}`}
+                                    className={`transition-colors p-1 rounded hover:bg-gray-200/50 ${cat.show_on_home ? 'text-gray-900' : 'text-gray-300'}`}
                                   >
                                     {cat.show_on_home ? <HomeIconSolid className="h-4 w-4" /> : <HomeIcon className="h-4 w-4" />}
                                   </button>
@@ -300,15 +255,9 @@ export default function AdminCategories() {
                                     <input 
                                       className="bg-transparent text-sm font-black uppercase italic outline-none border-b border-gray-900 w-full mr-4"
                                       value={editName} onChange={e => setEditName(e.target.value)} autoFocus
-                                      onKeyDown={(e) => { if (e.key === 'Enter') handleUpdateCategory(cat.id) }}
                                     />
                                   ) : (
-                                    <>
-                                      <span className="text-sm font-black uppercase italic tracking-tight text-gray-900">{cat.name}</span>
-                                      <span className="text-[8px] px-2 py-0.5 bg-gray-900 text-white font-black rounded-full uppercase tracking-widest">
-                                        {products.filter(p => p.category_id === cat.id).length} itens
-                                      </span>
-                                    </>
+                                    <span className="text-sm font-black uppercase italic tracking-tight text-gray-900">{cat.name}</span>
                                   )}
                                 </div>
                               </div>
@@ -322,74 +271,73 @@ export default function AdminCategories() {
                             </div>
 
                             <div className="p-6 space-y-6">
-                              {/* ZONA DE DROP PARA CATEGORIA PRINCIPAL */}
                               <MainCategoryDropZone id={cat.id} />
 
-                              {/* PRODUTOS DIRETOS */}
                               <div className="space-y-2">
-                                {linkedProducts.length > 0 && (
-                                  <div className="grid grid-cols-1 gap-1">
-                                    {linkedProducts.map(p => (
-                                      <DraggableProduct key={p.id} id={p.id} product={p}>
-                                        <div className="flex items-center justify-between group py-2 px-3 bg-gray-50/50 rounded-lg hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200">
-                                          <div className="flex items-center gap-3">
-                                            <Bars3Icon className="h-3 w-3 text-gray-300" />
-                                            <div className={`h-1.5 w-1.5 rounded-full ${p.is_active ? 'bg-green-500' : 'bg-gray-200'}`} />
-                                            <span className="text-[10px] font-bold uppercase text-gray-700">{p.name}</span>
-                                          </div>
-                                          <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleUnlinkProduct(p.id)} className="opacity-0 group-hover:opacity-100 text-orange-400 hover:text-orange-600 text-[9px] font-black uppercase"><LinkSlashIcon className="h-3 w-3" /></button>
-                                        </div>
-                                      </DraggableProduct>
-                                    ))}
-                                  </div>
-                                )}
+                                {linkedProducts.map(p => (
+                                  <DraggableProduct key={p.id} id={p.id} product={p}>
+                                    <div className="flex items-center justify-between group py-2 px-3 bg-gray-50/50 rounded-lg border border-transparent hover:border-gray-200">
+                                      <div className="flex items-center gap-3">
+                                        <Bars3Icon className="h-3 w-3 text-gray-300" />
+                                        {/* LUZ VERDINHA RESTAURADA */}
+                                        <div className={`h-1.5 w-1.5 rounded-full ${p.is_active ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)]' : 'bg-gray-300'}`} />
+                                        <span className={`text-[10px] font-bold uppercase ${p.is_active ? 'text-gray-700' : 'text-gray-400 italic'}`}>{p.name}</span>
+                                      </div>
+                                      <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleUnlinkProduct(p.id)} className="opacity-0 group-hover:opacity-100 text-orange-400 hover:text-orange-600 text-[9px] font-black uppercase"><LinkSlashIcon className="h-3 w-3" /></button>
+                                    </div>
+                                  </DraggableProduct>
+                                ))}
                               </div>
 
-                              {/* SUBCATEGORIAS */}
                               <div className="space-y-4 pt-4 border-t border-gray-50">
                                 <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Subcategorias_</p>
                                 <SortableContext items={catSubcategories.map(s => s.id)} strategy={verticalListSortingStrategy}>
-                                  {catSubcategories.map(sub => {
-                                    const subProducts = products.filter(p => p.subcategory_id === sub.id)
-                                    return (
-                                      <SortableSubcategory key={sub.id} id={sub.id} subcategory={sub}>
-                                        {({ attributes, listeners }: any) => (
-                                          <div className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm space-y-3">
-                                            <div className="flex items-center justify-between border-b border-gray-50 pb-2">
-                                              <div className="flex items-center gap-2">
-                                                <button {...attributes} {...listeners} className="text-gray-300 hover:text-gray-900 cursor-grab touch-none"><Bars2Icon className="h-4 w-4" /></button>
-                                                <span className="text-[11px] font-bold text-gray-600 uppercase">{sub.name}</span>
-                                              </div>
-                                              <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleDelete(sub.id, 'subcategories')} className="text-gray-200 hover:text-red-500"><TrashIcon className="h-3.5 w-3.5" /></button>
+                                  {catSubcategories.map(sub => (
+                                    <SortableSubcategory key={sub.id} id={sub.id} subcategory={sub}>
+                                      {({ attributes, listeners }: any) => (
+                                        <div className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm space-y-3">
+                                          <div className="flex items-center justify-between border-b border-gray-50 pb-2">
+                                            <div className="flex items-center gap-3">
+                                              <button {...attributes} {...listeners} className="text-gray-300 hover:text-gray-900 cursor-grab touch-none"><Bars2Icon className="h-4 w-4" /></button>
+                                              
+                                              <button 
+                                                onClick={() => handleToggleSubHomeVisibility(sub.id, sub.show_on_home)}
+                                                className={`transition-colors ${sub.show_on_home !== false ? 'text-yellow-600' : 'text-gray-200'}`}
+                                              >
+                                                {sub.show_on_home !== false ? <HomeIconSolid className="h-3.5 w-3.5" /> : <HomeIcon className="h-3.5 w-3.5" />}
+                                              </button>
+
+                                              <span className="text-[11px] font-bold text-gray-600 uppercase italic">{sub.name}</span>
                                             </div>
-                                            <div className="pl-6 space-y-1">
-                                              {subProducts.map(p => (
-                                                <DraggableProduct key={p.id} id={p.id} product={p}>
-                                                  <div className="flex items-center justify-between group py-1.5 px-2 hover:bg-gray-50 rounded-md border border-transparent hover:border-gray-100">
-                                                    <div className="flex items-center gap-2">
-                                                      <Bars3Icon className="h-3 w-3 text-gray-300" /><div className={`h-1 w-1 rounded-full ${p.is_active ? 'bg-green-500' : 'bg-gray-200'}`} /><span className="text-[9px] font-bold text-gray-500 uppercase">{p.name}</span>
-                                                    </div>
-                                                    <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleUnlinkProduct(p.id)} className="opacity-0 group-hover:opacity-100 text-orange-400 hover:text-orange-600 z-10"><LinkSlashIcon className="h-3 w-3" /></button>
-                                                  </div>
-                                                </DraggableProduct>
-                                              ))}
-                                              {subProducts.length === 0 && <p className="text-[8px] font-bold text-gray-200 uppercase italic">Vazio_</p>}
-                                            </div>
+                                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleDelete(sub.id, 'subcategories')} className="text-gray-200 hover:text-red-500"><TrashIcon className="h-3.5 w-3.5" /></button>
                                           </div>
-                                        )}
-                                      </SortableSubcategory>
-                                    )
-                                  })}
+                                          <div className="pl-6 space-y-1">
+                                            {products.filter(p => p.subcategory_id === sub.id).map(p => (
+                                              <DraggableProduct key={p.id} id={p.id} product={p}>
+                                                <div className="flex items-center justify-between group py-1.5 px-2 hover:bg-gray-50 rounded-md">
+                                                  <div className="flex items-center gap-2">
+                                                    <Bars3Icon className="h-3 w-3 text-gray-300" />
+                                                    {/* LUZ VERDINHA RESTAURADA TAMBÉM NAS SUBS */}
+                                                    <div className={`h-1 w-1 rounded-full ${p.is_active ? 'bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.5)]' : 'bg-gray-300'}`} />
+                                                    <span className={`text-[9px] font-bold uppercase ${p.is_active ? 'text-gray-500' : 'text-gray-300 italic'}`}>{p.name}</span>
+                                                  </div>
+                                                  <button onPointerDown={(e) => e.stopPropagation()} onClick={() => handleUnlinkProduct(p.id)} className="opacity-0 group-hover:opacity-100 text-orange-400 hover:text-orange-600 z-10"><LinkSlashIcon className="h-3 w-3" /></button>
+                                                </div>
+                                              </DraggableProduct>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </SortableSubcategory>
+                                  ))}
                                 </SortableContext>
                               </div>
 
-                              {/* ADD SUB FORM */}
                               {!isEditing && (
                                 <div className="pt-4 mt-2 border-t border-dashed border-gray-100 flex items-center gap-4">
                                   <input 
                                     type="text" placeholder="Nova Subcategoria..." value={newSub[cat.id] || ''}
                                     onChange={e => setNewSub({ ...newSub, [cat.id]: e.target.value })}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddSub(cat.id) }}
                                     className="flex-1 bg-transparent border-b border-gray-200 py-1 text-[11px] font-bold uppercase outline-none focus:border-gray-900"
                                   />
                                   <button onClick={() => handleAddSub(cat.id)} className="text-[10px] font-black text-gray-900 px-3 py-1.5 rounded border border-gray-900 hover:bg-gray-900 hover:text-white transition-all">+ ADD</button>

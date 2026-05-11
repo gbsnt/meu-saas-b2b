@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 
 interface BreadcrumbItem {
@@ -10,28 +12,32 @@ interface BreadcrumbProps {
 }
 
 export default function Breadcrumb({ items }: BreadcrumbProps) {
+  // Filtramos itens que por acaso venham sem nome (prevenção de erro)
+  const validItems = items.filter(item => item.name && item.name.trim() !== "")
+
   return (
     <nav aria-label="Breadcrumb" className="mb-8">
-      <ol className="flex items-center space-x-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
-        {/* Item Fixo: Home */}
+      <ol className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+        {/* Item Fixo: HOME (O único que aponta para a raiz) */}
         <li>
           <Link href="/" className="hover:text-gray-900 transition-colors">
             Home
           </Link>
         </li>
         
-        {/* Itens Dinâmicos */}
-        {items.map((item, index) => {
-          const isLast = index === items.length - 1
+        {validItems.map((item, index) => {
+          const isLast = index === validItems.length - 1
           
           return (
-            <li key={item.name} className="flex items-center">
+            <li key={`${item.name}-${index}`} className="flex items-center">
               <span className="px-2 text-gray-200">/</span>
               {isLast || !item.href ? (
-                // Último item fica destacado e sem link
-                <span className="text-gray-900 italic font-black">{item.name}</span>
+                // O último item (Nome do Produto ou Categoria Atual)
+                <span className="text-gray-900 italic font-black">
+                  {item.name}_
+                </span>
               ) : (
-                // Itens intermediários são links clicáveis
+                // Categorias intermediárias
                 <Link href={item.href} className="hover:text-gray-900 transition-colors">
                   {item.name}
                 </Link>
