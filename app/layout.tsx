@@ -20,9 +20,7 @@ export default function RootLayout({
     <html lang="pt-br" className="scroll-smooth">
       <body className={inter.className}>
         <CartProvider>
-          {/* O CartSidebar precisa estar aqui para o Header conseguir abrir ele */}
           <CartSidebar /> 
-          
           {children}
         </CartProvider>
       </body>

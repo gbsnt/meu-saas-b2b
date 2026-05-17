@@ -1,0 +1,17 @@
+#!/bin/sh
+basedir=$(dirname "$(echo "$0" | sed -e 's,\\,/,g')")
+
+case `uname` in
+    *CYGWIN*|*MINGW*|*MSYS*)
+        if command -v cygpath > /dev/null 2>&1; then
+            basedir=`cygpath -w "$basedir"`
+        fi
+    ;;
+esac
+
+if [ -x "$basedir/node" ]; then
+  exec "$basedir/node"  "$basedir/../node_modules/pnpm/bin/pnpx.cjs" "$@"
+else
+  exec node  "$basedir/../node_modules/pnpm/bin/pnpx.cjs" "$@"
+fi
+# cmd-shim-target=/Users/gbsnt/Documents/chatbot-suporte/meu-saas-b2b/.pnpm-store/v11/links/@/pnpm/10.12.4/23601b37897356e58307ce4cd4db13482c7a4bb9831dbfcc8ef79a445e7b2431/node_modules/pnpm/bin/pnpx.cjs

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { 
-  TrashIcon, ChevronRightIcon, LinkSlashIcon,
+  TrashIcon, LinkSlashIcon,
   PencilSquareIcon, CheckIcon, XMarkIcon, Bars2Icon, Bars3Icon,
   ArrowDownTrayIcon, HomeIcon
 } from '@heroicons/react/24/outline'
@@ -198,7 +198,8 @@ export default function AdminCategories() {
   }
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-500 pb-20 max-w-6xl mx-auto">
+    /* 🚀 ATUALIZADO: Trocado max-w-6xl mx-auto por w-full para se ajustar perfeitamente ao grid fluido do admin */
+    <div className="space-y-10 animate-in fade-in duration-500 pb-20 w-full">
       <header>
         <h1 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">Estrutura_</h1>
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Organize categorias, subs e arraste produtos livremente</p>
@@ -279,7 +280,6 @@ export default function AdminCategories() {
                                     <div className="flex items-center justify-between group py-2 px-3 bg-gray-50/50 rounded-lg border border-transparent hover:border-gray-200">
                                       <div className="flex items-center gap-3">
                                         <Bars3Icon className="h-3 w-3 text-gray-300" />
-                                        {/* LUZ VERDINHA RESTAURADA */}
                                         <div className={`h-1.5 w-1.5 rounded-full ${p.is_active ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)]' : 'bg-gray-300'}`} />
                                         <span className={`text-[10px] font-bold uppercase ${p.is_active ? 'text-gray-700' : 'text-gray-400 italic'}`}>{p.name}</span>
                                       </div>
@@ -317,7 +317,6 @@ export default function AdminCategories() {
                                                 <div className="flex items-center justify-between group py-1.5 px-2 hover:bg-gray-50 rounded-md">
                                                   <div className="flex items-center gap-2">
                                                     <Bars3Icon className="h-3 w-3 text-gray-300" />
-                                                    {/* LUZ VERDINHA RESTAURADA TAMBÉM NAS SUBS */}
                                                     <div className={`h-1 w-1 rounded-full ${p.is_active ? 'bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.5)]' : 'bg-gray-300'}`} />
                                                     <span className={`text-[9px] font-bold uppercase ${p.is_active ? 'text-gray-500' : 'text-gray-300 italic'}`}>{p.name}</span>
                                                   </div>

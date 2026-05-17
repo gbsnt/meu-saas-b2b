@@ -24,8 +24,8 @@ export default function EditProductPage() {
     description: '',
     price: 0,
     stock: 0,
-    category_id: '',    // Atualizado para ID
-    subcategory_id: '', // Novo campo
+    category_id: '',    
+    subcategory_id: '', 
     line: '', 
     image_url: '',
     is_active: true,
@@ -59,8 +59,8 @@ export default function EditProductPage() {
             description: p.description || '',
             price: p.price || 0,
             stock: p.stock || 0,
-            category_id: p.category_id || '',       // Puxa o ID
-            subcategory_id: p.subcategory_id || '', // Puxa o ID
+            category_id: p.category_id || '',       
+            subcategory_id: p.subcategory_id || '', 
             line: p.line || '',
             image_url: p.image_url || '',
             is_active: p.is_active ?? true,
@@ -100,7 +100,7 @@ export default function EditProductPage() {
     setProduct({
       ...product,
       category_id: e.target.value,
-      subcategory_id: '' // Reseta a sub ao mudar a pai
+      subcategory_id: '' 
     })
   }
 
@@ -159,11 +159,11 @@ export default function EditProductPage() {
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Preço (R$)</label>
-                <input type="number" step="0.01" required value={product.price} onChange={e => setProduct({...product, price: parseFloat(e.target.value)})} className="w-full border-b-2 border-gray-100 pb-2 focus:border-gray-900 outline-none text-2xl font-black text-gray-900 tabular-nums" />
+                <input type="number" step="0.01" required value={product.price || ''} onChange={e => setProduct({...product, price: parseFloat(e.target.value) || 0})} className="w-full border-b-2 border-gray-100 pb-2 focus:border-gray-900 outline-none text-2xl font-black text-gray-900 tabular-nums" />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Estoque Real</label>
-                <input type="number" required value={product.stock} onChange={e => setProduct({...product, stock: parseInt(e.target.value)})} className="w-full border-b-2 border-gray-100 pb-2 focus:border-gray-900 outline-none text-2xl font-black text-gray-900 tabular-nums" />
+                <input type="number" required value={product.stock || ''} onChange={e => setProduct({...product, stock: parseInt(e.target.value) || 0})} className="w-full border-b-2 border-gray-100 pb-2 focus:border-gray-900 outline-none text-2xl font-black text-gray-900 tabular-nums" />
               </div>
             </div>
           </div>
@@ -171,10 +171,10 @@ export default function EditProductPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 space-y-6">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-900 border-b border-gray-100 pb-4">3. Logística (Embalagem)</h2>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Peso (kg)</label><input type="number" step="0.001" value={product.weight} onChange={e => setProduct({...product, weight: parseFloat(e.target.value)})} className="w-full border-b-2 border-gray-100 focus:border-gray-900 outline-none text-sm font-bold" /></div>
-              <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Comp. (cm)</label><input type="number" value={product.length} onChange={e => setProduct({...product, length: parseFloat(e.target.value)})} className="w-full border-b-2 border-gray-100 focus:border-gray-900 outline-none text-sm font-bold" /></div>
-              <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Largura (cm)</label><input type="number" value={product.width} onChange={e => setProduct({...product, width: parseFloat(e.target.value)})} className="w-full border-b-2 border-gray-100 focus:border-gray-900 outline-none text-sm font-bold" /></div>
-              <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Altura (cm)</label><input type="number" value={product.height} onChange={e => setProduct({...product, height: parseFloat(e.target.value)})} className="w-full border-b-2 border-gray-100 focus:border-gray-900 outline-none text-sm font-bold" /></div>
+              <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Peso (kg)</label><input type="number" step="0.001" value={product.weight || ''} onChange={e => setProduct({...product, weight: parseFloat(e.target.value) || 0})} className="w-full border-b-2 border-gray-100 focus:border-gray-900 outline-none text-sm font-bold" /></div>
+              <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Comp. (cm)</label><input type="number" value={product.length || ''} onChange={e => setProduct({...product, length: parseFloat(e.target.value) || 0})} className="w-full border-b-2 border-gray-100 focus:border-gray-900 outline-none text-sm font-bold" /></div>
+              <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Largura (cm)</label><input type="number" value={product.width || ''} onChange={e => setProduct({...product, width: parseFloat(e.target.value) || 0})} className="w-full border-b-2 border-gray-100 focus:border-gray-900 outline-none text-sm font-bold" /></div>
+              <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Altura (cm)</label><input type="number" value={product.height || ''} onChange={e => setProduct({...product, height: parseFloat(e.target.value) || 0})} className="w-full border-b-2 border-gray-100 focus:border-gray-900 outline-none text-sm font-bold" /></div>
             </div>
           </div>
         </div>

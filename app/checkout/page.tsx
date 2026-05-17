@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useCart } from '../../components/CartContext'
+import React, { useState } from 'react'
+import { useCart } from '../../components/CartContext' // Ajuste o caminho se necessário
 import Link from 'next/link'
 import { 
   ShieldCheckIcon, 
@@ -11,17 +11,44 @@ import {
   ShoppingBagIcon 
 } from '@heroicons/react/24/outline'
 
+// 1. Definição das Interfaces
+interface ShippingOption {
+  Nome: string;
+  Valor: string;
+  PrazoEntrega: number;
+  Codigo: string;
+}
+
+interface CartItem {
+  id: string | number;
+  name: string;
+  price: number;
+  quantity: number;
+  image_url: string;
+  weight?: number;
+  width?: number;
+  height?: number;
+  length?: number;
+}
+
 export default function CheckoutPage() {
-  const { cart, cartTotal, shippingCost, setShippingCost, finalTotal } = useCart()
-  const [loadingShipping, setLoadingShipping] = useState(false)
-  const [shippingOptions, setShippingOptions] = useState<any[]>([])
+  const { cart, cartTotal, shippingCost, setShippingCost, finalTotal } = useCart() as {
+    cart: CartItem[];
+    cartTotal: number;
+    shippingCost: number | null;
+    setShippingCost: (val: number | null) => void;
+    finalTotal: number;
+  }
+
+  const [loadingShipping, setLoadingShipping] = useState<boolean>(false)
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
-  const [cepInput, setCepInput] = useState("")
+  const [cepInput, setCepInput] = useState<string>("")
 
   const handleZipCodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/\D/g, '').slice(0, 8)
     
-    // Máscara 00000-000
+    // Máscara visual (00000-000)
     const maskedValue = rawValue.length <= 5 ? rawValue : `${rawValue.slice(0, 5)}-${rawValue.slice(5, 8)}`
     setCepInput(maskedValue)
     
@@ -31,15 +58,18 @@ export default function CheckoutPage() {
         const res = await fetch('/api/shipping', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cepDestino: rawValue }),
+          // 📦 A MÁGICA ACONTECE AQUI: O carrinho é enviado inteiro para a API
+          body: JSON.stringify({ 
+            cepDestino: rawValue,
+            items: cart 
+          }),
         })
 
-        const data = await res.json()
+        const data: ShippingOption[] = await res.json()
 
-        // Se a API retornar sucesso ou o nosso fallback (sempre será um array)
         if (Array.isArray(data) && data.length > 0) {
           setShippingOptions(data)
-          // Seleciona automaticamente a primeira opção para agilizar
+          // Seleciona a primeira opção automaticamente
           const firstOption = data[0]
           const valorNum = parseFloat(firstOption.Valor.replace(',', '.'))
           setShippingCost(valorNum)
@@ -47,8 +77,7 @@ export default function CheckoutPage() {
         }
       } catch (err) {
         console.error("Erro na requisição:", err)
-        // Contingência total: caso a API caia, injeta um frete padrão manualmente
-        const fallback = [{ Nome: 'ENVIO PADRÃO_', Valor: '25,00', PrazoEntrega: 7, Codigo: 'safe-fallback' }]
+        const fallback: ShippingOption[] = [{ Nome: 'ENVIO PADRÃO_', Valor: '25,00', PrazoEntrega: 7, Codigo: 'safe-fallback' }]
         setShippingOptions(fallback)
         setShippingCost(25.00)
         setSelectedOption('ENVIO PADRÃO_')
@@ -56,24 +85,24 @@ export default function CheckoutPage() {
         setLoadingShipping(false)
       }
     } else {
-      // Limpa seleções se o CEP estiver incompleto
       setShippingOptions([])
       setShippingCost(null)
       setSelectedOption(null)
     }
   }
 
-  const selectShipping = (option: any) => {
+  const selectShipping = (option: ShippingOption) => {
     const valorNum = parseFloat(option.Valor.replace(',', '.'))
     setShippingCost(valorNum)
     setSelectedOption(option.Nome)
   }
 
+  // Se a bolsa estiver vazia
   if (cart.length === 0) return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4 text-center">
       <ShoppingBagIcon className="h-12 w-12 text-gray-200 mb-4" />
       <h1 className="text-2xl font-black italic uppercase tracking-tighter mb-6 text-gray-900">Sua bolsa está vazia_</h1>
-      <Link href="/#shop" className="text-[10px] font-black uppercase tracking-[0.3em] px-10 py-4 bg-gray-900 text-white hover:invert transition-all">
+      <Link href="/#shop" className="text-[10px] font-black uppercase tracking-[0.3em] px-10 py-4 bg-gray-900 text-white hover:bg-black transition-all">
         Voltar para a loja
       </Link>
     </div>
@@ -83,7 +112,7 @@ export default function CheckoutPage() {
     <div className="bg-white min-h-screen">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         
-        {/* HEADER */}
+        {/* HEADER DO CHECKOUT */}
         <div className="flex items-center justify-between mb-16 border-b border-gray-100 pb-8">
           <Link href="/" className="font-bold text-2xl uppercase italic tracking-tighter text-gray-900">STUDIO_</Link>
           <div className="flex items-center text-gray-400 gap-2">
@@ -94,26 +123,25 @@ export default function CheckoutPage() {
 
         <div className="lg:grid lg:grid-cols-2 lg:gap-x-20">
           
-          {/* COLUNA 1: DADOS */}
+          {/* COLUNA ESQUERDA - DADOS DO CLIENTE */}
           <section>
             <form className="space-y-12" onSubmit={(e) => e.preventDefault()}>
-              
               <div>
                 <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-900 mb-8 border-l-4 border-gray-900 pl-4">
                   01. Entrega_
                 </h2>
                 <div className="space-y-6">
-                  <input type="email" required className="w-full border-b-2 border-gray-100 py-3 outline-none focus:border-gray-900 text-sm" placeholder="E-MAIL" />
+                  <input type="email" required className="w-full border-b-2 border-gray-100 py-3 outline-none focus:border-gray-900 text-sm uppercase font-bold" placeholder="E-MAIL" />
 
                   <div className="grid grid-cols-2 gap-8">
-                    <input type="text" placeholder="NOME" className="w-full border-b-2 border-gray-100 py-3 outline-none focus:border-gray-900 text-sm" />
-                    <input type="text" placeholder="SOBRENOME" className="w-full border-b-2 border-gray-100 py-3 outline-none focus:border-gray-900 text-sm" />
+                    <input type="text" placeholder="NOME" className="w-full border-b-2 border-gray-100 py-3 outline-none focus:border-gray-900 text-sm uppercase font-bold" />
+                    <input type="text" placeholder="SOBRENOME" className="w-full border-b-2 border-gray-100 py-3 outline-none focus:border-gray-900 text-sm uppercase font-bold" />
                   </div>
 
-                  <input type="text" placeholder="ENDEREÇO COMPLETO" className="w-full border-b-2 border-gray-100 py-3 outline-none focus:border-gray-900 text-sm" />
+                  <input type="text" placeholder="ENDEREÇO COMPLETO" className="w-full border-b-2 border-gray-100 py-3 outline-none focus:border-gray-900 text-sm uppercase font-bold" />
 
                   <div className="grid grid-cols-3 gap-8">
-                    <input type="text" placeholder="CIDADE" className="col-span-2 border-b-2 border-gray-100 py-3 outline-none focus:border-gray-900 text-sm" />
+                    <input type="text" placeholder="CIDADE" className="col-span-2 border-b-2 border-gray-100 py-3 outline-none focus:border-gray-900 text-sm uppercase font-bold" />
                     <div className="relative">
                       <input 
                         type="text" 
@@ -128,7 +156,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* SELEÇÃO DE FRETE */}
+              {/* OPÇÕES DE FRETE RENDERIZADAS AQUI */}
               {shippingOptions.length > 0 && (
                 <div className="animate-in fade-in slide-in-from-top-4 duration-500">
                    <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-900 mb-6 border-l-4 border-gray-900 pl-4">
@@ -137,7 +165,7 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {shippingOptions.map((option) => (
                       <div 
-                        key={option.Nome}
+                        key={option.Codigo}
                         onClick={() => selectShipping(option)}
                         className={`p-5 border-2 cursor-pointer transition-all flex flex-col justify-between h-28 ${
                           selectedOption === option.Nome 
@@ -165,8 +193,8 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* PAGAMENTO */}
-              <div className={!selectedOption ? 'opacity-20 pointer-events-none' : ''}>
+              {/* SEÇÃO DE PAGAMENTO */}
+              <div className={!selectedOption ? 'opacity-20 pointer-events-none transition-opacity' : 'transition-opacity'}>
                 <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-900 mb-8 border-l-4 border-gray-900 pl-4">
                   02. Pagamento_
                 </h2>
@@ -188,15 +216,17 @@ export default function CheckoutPage() {
             </form>
           </section>
 
-          {/* COLUNA 2: RESUMO */}
+          {/* COLUNA DIREITA - RESUMO DO CARRINHO */}
           <section className="mt-16 lg:mt-0">
             <div className="lg:sticky lg:top-10 bg-gray-50 p-10 border border-gray-100">
               <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-10">Bolsa_</h2>
               
               <ul className="divide-y divide-gray-200 mb-10">
-                {cart.map((item) => (
+                {cart.map((item: CartItem) => (
                   <li key={item.id} className="flex py-6 first:pt-0">
-                    <img src={item.image_url} className="h-20 w-20 object-cover border border-gray-200 bg-white" alt={item.name} />
+                    <div className="h-20 w-20 flex-shrink-0 overflow-hidden border border-gray-200 bg-white">
+                      <img src={item.image_url} className="h-full w-full object-cover" alt={item.name} />
+                    </div>
                     <div className="ml-6 flex-1 flex flex-col justify-center">
                       <div className="flex justify-between text-[11px] font-black uppercase italic text-gray-900">
                         <span>{item.name} <span className="text-gray-400 not-italic ml-2">x{item.quantity}</span></span>

@@ -1,12 +1,21 @@
 'use client'
 
-import { Fragment } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, PlusIcon, MinusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useCart } from './CartContext'
 
 export default function CartSidebar() {
   const { cart, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart, cartTotal } = useCart()
+  const [mounted, setMounted] = useState(false)
+
+  // 🔥 TRAVA DE SEGURANÇA: Garante que o esqueleto do carrinho só exista no navegador,
+  // impedindo que o Headless UI corrompa os cálculos de layout iniciais do Mac no SSR.
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
 
   return (
     <Transition.Root show={isCartOpen} as={Fragment}>

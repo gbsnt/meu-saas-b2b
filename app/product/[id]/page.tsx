@@ -9,7 +9,7 @@ import { useCart } from '../../../components/CartContext'
 import Header from '../../../components/Header'
 import Footer from '../../../components/Footer'
 import Breadcrumb from '../../../components/Breadcrumb'
-import ShippingCalculator from '../../../components/ShippingCalculator' // <--- ADICIONADO
+import ShippingCalculator from '../../../components/ShippingCalculator'
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -18,13 +18,30 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const [categoryName, setCategoryName] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
+  
+  // 📦 NOVO ESTADO: Controla se a calculadora aparece ou não
+  const [showShippingCalc, setShowShippingCalc] = useState(true)
 
   useEffect(() => {
     async function loadProductData() {
       try {
         setLoading(true)
         
-        // 1. Busca o Produto
+        // 1. Busca a configuração do frete (LIGA/DESLIGA)
+        const { data: configData } = await supabase
+          .from('store_settings')
+          .select('value')
+          .eq('key', 'show_shipping_product_page')
+          .single()
+          
+        // Verifica rigorosamente se o texto é 'false'
+        if (configData) {
+          setShowShippingCalc(configData.value !== 'false')
+        } else {
+          setShowShippingCalc(true) // Padrão é mostrar
+        }
+
+        // 2. Busca o Produto
         const { data: prod, error } = await supabase
           .from('products')
           .select('*')
@@ -39,7 +56,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
         setProduct(prod)
 
-        // 2. Busca o nome real da Categoria (via ID ou texto antigo)
+        // 3. Busca o nome real da Categoria (via ID ou texto antigo)
         if (prod.category_id) {
           const { data: catData } = await supabase
             .from('categories')
@@ -167,8 +184,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                     Add {quantity > 1 ? `(${quantity})` : ''} to Bag_
                   </button>
 
-                  {/* CÁLCULO DE FRETE INTEGRADO AQUI */}
-                  <ShippingCalculator /> 
+                  {/* 📦 A MÁGICA ACONTECE AQUI: Renderização Condicional controlada pelo Admin */}
+                  {showShippingCalc && <ShippingCalculator product={product} />} 
                 </div>
               )}
 

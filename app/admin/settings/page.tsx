@@ -1,6 +1,10 @@
-export const dynamic = 'force-dynamic'
+'use client'
+
+import { useRouter } from 'next/navigation'
 
 export default function AdminSettings() {
+  const router = useRouter()
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div>
@@ -12,8 +16,13 @@ export default function AdminSettings() {
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-100">
-        <div className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-100 flex flex-col">
+        
+        {/* PERFIL DA LOJA */}
+        <div 
+          onClick={() => router.push('/admin/profile')}
+          className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+        >
           <div>
             <h3 className="text-sm font-bold text-gray-900 uppercase">Perfil da Loja</h3>
             <p className="text-sm text-gray-500 mt-1">Atualize o nome, logo e informações de contato.</p>
@@ -21,13 +30,18 @@ export default function AdminSettings() {
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Editar &rarr;</span>
         </div>
         
-        <div className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer">
+        {/* TAXAS E FRETE */}
+        <div 
+          onClick={() => router.push('/admin/shipping')}
+          className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+        >
           <div>
             <h3 className="text-sm font-bold text-gray-900 uppercase">Taxas e Frete</h3>
             <p className="text-sm text-gray-500 mt-1">Configure regras de entrega para o B2B.</p>
           </div>
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Editar &rarr;</span>
         </div>
+
       </div>
     </div>
   )
